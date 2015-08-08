@@ -23,6 +23,8 @@ import com.android.settings.notification.DropDownPreference.Callback;
 import com.android.settings.search.BaseSearchIndexProvider;
 import com.android.settings.search.Indexable;
 
+import static android.hardware.CmHardwareManager.FEATURE_SWEEP_TO_SLEEP;
+import static android.hardware.CmHardwareManager.FEATURE_SWEEP_TO_WAKE;
 import static android.hardware.CmHardwareManager.FEATURE_TAP_TO_WAKE;
 import static android.provider.Settings.Secure.WAKE_GESTURE_ENABLED;
 import static android.provider.Settings.System.SCREEN_BRIGHTNESS_MODE;
@@ -69,8 +71,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.cyanogenmod.hardware.CalibrationControl;
-import org.cyanogenmod.hardware.SweepToSleep;
-import org.cyanogenmod.hardware.SweepToWake;
 import com.android.settings.Utils;
 
 public class DisplaySettings extends SettingsPreferenceFragment implements
@@ -230,30 +230,28 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
             mTapToWake = null;
         }
 
-        mWakeGestures = (PreferenceScreen) findPreference(KEY_WAKE_GESTURES);
-
         mSweepToWake = (SwitchPreference) findPreference(KEY_SWEEP_TO_WAKE);
-        if (!isSweepToWakeSupported()) {
-            advancedPrefs.removePreference(mSweepToWake);
-            advancedPrefs.removePreference(mWakeGestures);
-            mSweepToWake = null;
-        } else if (isSweepToWakeSupported() && !areWakeGesturesAvailable(getResources())) {
-            advancedPrefs.removePreference(mWakeGestures);
-        } else if (isSweepToWakeSupported() && areWakeGesturesAvailable(getResources())) {
+
+        if (advancedPrefs != null && mSweepToWake != null
+                && !mCmHardwareManager.isSupported(FEATURE_SWEEP_TO_WAKE)) {
             advancedPrefs.removePreference(mSweepToWake);
             mSweepToWake = null;
         }
 
         mSweepToSleep = (SwitchPreference) findPreference(KEY_SWEEP_TO_SLEEP);
-        if (!isSweepToSleepSupported()) {
-            advancedPrefs.removePreference(mSweepToSleep);
-            advancedPrefs.removePreference(mWakeGestures);
-            mSweepToSleep = null;
-        } else if (isSweepToSleepSupported() && !areWakeGesturesAvailable(getResources())) {
-            advancedPrefs.removePreference(mWakeGestures);
-        } else if (isSweepToSleepSupported() && areWakeGesturesAvailable(getResources())) {
+
+        if (advancedPrefs != null && mSweepToSleep != null
+                && !mCmHardwareManager.isSupported(FEATURE_SWEEP_TO_SLEEP)) {
             advancedPrefs.removePreference(mSweepToSleep);
             mSweepToSleep = null;
+        }
+
+        mWakeGestures = (PreferenceScreen) findPreference(KEY_WAKE_GESTURES);
+
+        if (advancedPrefs != null && mWakeGestures != null
+                && !areWakeGesturesAvailable(getResources())) {
+            advancedPrefs.removePreference(mWakeGestures);
+            mWakeGestures = null;
         }
 
         mCalibrationControl = (SwitchPreference) findPreference(KEY_CALIBRATION_CONTROL);
@@ -266,8 +264,11 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
         Utils.updatePreferenceToSpecificActivityFromMetaDataOrRemove(getActivity(),
                 getPreferenceScreen(), KEY_SCREEN_OFF_GESTURE_SETTINGS);
 
-        if (!mCmHardwareManager.isSupported(FEATURE_TAP_TO_WAKE) && !isSweepToWakeSupported()
-                && !isSweepToSleepSupported() && !isCalibrationControlSupported() ) {
+        if (!mCmHardwareManager.isSupported(FEATURE_TAP_TO_WAKE)
+                && !mCmHardwareManager.isSupported(FEATURE_SWEEP_TO_WAKE)
+                && !mCmHardwareManager.isSupported(FEATURE_SWEEP_TO_SLEEP)
+                && !areWakeGesturesAvailable(getResources())
+                && !isCalibrationControlSupported() ) {
                 prefSet.removePreference(advancedPrefs);
         }
 
@@ -406,11 +407,11 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
         }
 
         if (mSweepToWake != null) {
-            mSweepToWake.setChecked(SweepToWake.isEnabled());
+            mSweepToWake.setChecked(mCmHardwareManager.get(FEATURE_SWEEP_TO_WAKE));
         }
 
         if (mSweepToSleep != null) {
-            mSweepToSleep.setChecked(SweepToSleep.isEnabled());
+            mSweepToSleep.setChecked(mCmHardwareManager.get(FEATURE_SWEEP_TO_SLEEP));
         }
 
         if (mCalibrationControl != null) {
@@ -469,24 +470,6 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
         }
     }
 
-    private static boolean isSweepToWakeSupported() {
-        try {
-            return SweepToWake.isSupported();
-        } catch (NoClassDefFoundError e) {
-            // Hardware abstraction framework not installed
-            return false;
-        }
-    }
-
-    private static boolean isSweepToSleepSupported() {
-        try {
-            return SweepToSleep.isSupported();
-        } catch (NoClassDefFoundError e) {
-            // Hardware abstraction framework not installed
-            return false;
-        }
-    }
-
     private static boolean areWakeGesturesAvailable(Resources res) {
         return res.getBoolean(R.bool.config_wake_gestures_available);
     }
@@ -530,9 +513,9 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
         if (preference == mTapToWake) {
             return mCmHardwareManager.set(FEATURE_TAP_TO_WAKE, mTapToWake.isChecked());
         } else if (preference == mSweepToWake) {
-            return SweepToWake.setEnabled(mSweepToWake.isChecked());
+            return mCmHardwareManager.set(FEATURE_SWEEP_TO_WAKE, mSweepToWake.isChecked());
         } else if (preference == mSweepToSleep) {
-            return SweepToSleep.setEnabled(mSweepToSleep.isChecked());
+            return mCmHardwareManager.set(FEATURE_SWEEP_TO_SLEEP, mSweepToSleep.isChecked());
         } else if (preference == mCalibrationControl) {
             return CalibrationControl.setEnabled(mCalibrationControl.isChecked());
         }
@@ -607,25 +590,25 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
             }
         }
 
-        if (isSweepToWakeSupported()) {
+        if (cmHardwareManager.isSupported(FEATURE_SWEEP_TO_WAKE)) {
             final boolean enabled = prefs.getBoolean(KEY_SWEEP_TO_WAKE,
-                SweepToWake.isEnabled());
+                cmHardwareManager.get(FEATURE_SWEEP_TO_WAKE));
 
-            if (!SweepToWake.setEnabled(enabled)) {
+            if (!cmHardwareManager.set(FEATURE_SWEEP_TO_WAKE, enabled)) {
                 Log.e(TAG, "Failed to restore sweep-to-wake settings.");
             } else {
-                Log.d(TAG, "Sweep-to-wake settings restored.");
+                Log.d(TAG, "sweep-to-wake settings restored.");
             }
         }
 
-        if (isSweepToSleepSupported()) {
+        if (cmHardwareManager.isSupported(FEATURE_SWEEP_TO_SLEEP)) {
             final boolean enabled = prefs.getBoolean(KEY_SWEEP_TO_SLEEP,
-                SweepToSleep.isEnabled());
+                cmHardwareManager.get(FEATURE_SWEEP_TO_SLEEP));
 
-            if (!SweepToSleep.setEnabled(enabled)) {
+            if (!cmHardwareManager.set(FEATURE_SWEEP_TO_SLEEP, enabled)) {
                 Log.e(TAG, "Failed to restore sweep-to-sleep settings.");
             } else {
-                Log.d(TAG, "Sweep-to-sleep settings restored.");
+                Log.d(TAG, "sweep-to-sleep settings restored.");
             }
         }
 
@@ -669,6 +652,12 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
                     }
                     if (!cmHardwareManager.isSupported(FEATURE_TAP_TO_WAKE)) {
                         result.add(KEY_TAP_TO_WAKE);
+                    }
+                    if (!cmHardwareManager.isSupported(FEATURE_SWEEP_TO_WAKE)) {
+                        result.add(KEY_SWEEP_TO_WAKE);
+                    }
+                    if (!cmHardwareManager.isSupported(FEATURE_SWEEP_TO_SLEEP)) {
+                        result.add(KEY_SWEEP_TO_SLEEP);
                     }
                     if (!isAutomaticBrightnessAvailable(context.getResources())) {
                         result.add(KEY_AUTO_BRIGHTNESS);
