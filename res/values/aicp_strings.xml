@@ -284,4 +284,7 @@
 
     <string name="auto_brightness_min_title">Minimal brightness level</string>
     <string name="auto_brightness_description_new">Your screen brightness will automatically adjust to your environment and activities.\n\nYou can adjust a minimal brightness level that will be used.</string>
+
+    <!-- A2DP codec priority -->
+    <string name="a2dp_source_codec_priority_title">Bluetooth Audio Codec (preferred)</string>
 </resources>
