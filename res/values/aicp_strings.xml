@@ -287,4 +287,8 @@
 
     <!-- A2DP codec priority -->
     <string name="a2dp_source_codec_priority_title">Bluetooth Audio Codec (preferred)</string>
+
+    <!-- SBC HD (Dual Channel) priority -->
+    <string name="sbc_hd_priority_title">Bluetooth HD audio: SBC</string>
+    <string name="sbc_hd_priority_summary">Use Dual Channel mode for SBC codec as default</string>
 </resources>
