@@ -291,4 +291,8 @@
     <!-- SBC HD (Dual Channel) priority -->
     <string name="sbc_hd_priority_title">Bluetooth HD audio: SBC</string>
     <string name="sbc_hd_priority_summary">Use Dual Channel mode for SBC codec as default</string>
+
+    <!-- Screen off fod -->
+    <string name="fod_gesture_title">Screen off fingerprint</string>
+    <string name="fod_gesture_summary">Allows unlocking the device without having to wake up the screen first</string>
 </resources>
